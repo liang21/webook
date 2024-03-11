@@ -9,18 +9,6 @@ import (
 type LoginMiddlewareBuilder struct {
 }
 
-//	func (*LoginMiddlewareBuider) CheckLogin() gin.HandlerFunc {
-//		return func(ctx *gin.Context) {
-//			if ctx.Request.URL.Path == "/users/login" || ctx.Request.URL.Path == "/users/signup" {
-//				return
-//			}
-//			session := sessions.Default(ctx)
-//			if session.Get("user_id") == nil {
-//				ctx.AbortWithStatus(http.StatusUnauthorized)
-//				return
-//			}
-//		}
-//	}
 func (m *LoginMiddlewareBuilder) CheckLogin() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		path := ctx.Request.URL.Path

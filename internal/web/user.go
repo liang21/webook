@@ -4,9 +4,11 @@ import (
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/liang21/webook/internal/domain"
 	"github.com/liang21/webook/internal/service"
 	"net/http"
+	"time"
 )
 
 const (
@@ -30,12 +32,9 @@ func NewUserHandler(svc *service.UserService) *UserHandler {
 }
 
 func (u *UserHandler) RegisterRoutes(server *gin.Engine) {
-	//server.GET("/user", u.getUser)
-	//server.POST("/user", u.createUser)
-	//server.PUT("/user", u.updateUser)
-	//server.DELETE("/user", u.deleteUser)
 	server.POST("/users/signup", u.SignUp)
-	server.POST("/users/login", u.Login)
+	//server.POST("/users/login", u.Login)
+	server.POST("/users/login", u.LoginJWT)
 	server.POST("/users/edit", u.Edit)
 	server.POST("/users/profile", u.Profile)
 
@@ -117,10 +116,105 @@ func (u *UserHandler) Login(c *gin.Context) {
 	})
 }
 
-func (u *UserHandler) Edit(c *gin.Context) {
+func (u *UserHandler) LoginJWT(c *gin.Context) {
+	type Req struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	var req Req
+	err := c.Bind(&req)
+	if err != nil {
+		return
+	}
+	user, err := u.svc.Login(c, req.Email, req.Password)
+	if err != nil {
+		c.String(http.StatusOK, "登录失败")
+		return
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, UserClaims{
+		Id: user.Id,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+		},
+		userAgent: c.GetHeader("User-Agent"),
+	})
+	tokenStr, err := token.SignedString(JWTKey)
+	if err != nil {
+		c.String(http.StatusOK, "系统错误")
+		return
+	}
+	c.Header("x-jwt-token", tokenStr)
+	c.JSON(200, gin.H{
+		"message": "登录成功!",
+	})
+}
 
+func (u *UserHandler) Edit(c *gin.Context) {
+	type UserReq struct {
+		NikeName string `json:"nike_name"`
+		Birthday string `json:"birthday"`
+		About    string `json:"about"`
+	}
+	var req UserReq
+	if err := c.Bind(&req); err != nil {
+		return
+	}
+	user, ok := c.MustGet("user").(UserClaims)
+	if !ok {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	birthday, err := time.Parse(time.DateOnly, req.Birthday)
+	if err != nil {
+		c.String(http.StatusOK, "生日格式不对")
+		return
+	}
+	err = u.svc.Edit(c, domain.User{
+		Id:       user.Id,
+		NikeName: req.NikeName,
+		Birthday: birthday,
+		About:    req.About,
+	})
+	if err != nil {
+		c.String(http.StatusOK, "系统异常")
+		return
+	}
+	c.JSON(200, gin.H{
+		"message": "修改成功",
+	})
 }
 
 func (u *UserHandler) Profile(c *gin.Context) {
+	uc, ok := c.MustGet("user").(UserClaims)
+	if !ok {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	user, err := u.svc.Profile(c, uc.Id)
+	if err != nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	type UserRes struct {
+		Id       int64
+		Email    string
+		NikeName string
+		Birthday string
+		About    string
+	}
+	c.JSON(200, UserRes{
+		Id:       user.Id,
+		Email:    user.Email,
+		NikeName: user.NikeName,
+		Birthday: user.Birthday.Format(time.DateOnly),
+		About:    user.About,
+	})
+}
 
+var JWTKey = []byte("k6CswdUm77WKcbM68UQUuxVsHSpTCwgK")
+
+type UserClaims struct {
+	Id int64
+	jwt.RegisteredClaims
+	userAgent string
 }

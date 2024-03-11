@@ -8,4 +8,7 @@ type User struct {
 	Password string
 	CTime    time.Time
 	UTime    time.Time
+	NikeName string
+	Birthday time.Time
+	About    string
 }

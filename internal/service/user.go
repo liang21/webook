@@ -35,3 +35,15 @@ func (u *UserService) Login(ctx context.Context, email, password string) (user d
 	}
 	return user, nil
 }
+
+func (u *UserService) Edit(ctx context.Context, user domain.User) error {
+	return u.repo.Update(ctx, user)
+}
+
+func (u *UserService) Profile(ctx context.Context, id int64) (domain.User, error) {
+	user, err := u.repo.GetById(ctx, id)
+	if err != nil {
+		return domain.User{}, err
+	}
+	return user, nil
+}

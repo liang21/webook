@@ -36,3 +36,24 @@ func (u *UserRepository) toDomain(user dao.User) domain.User {
 		Password: user.Password,
 	}
 }
+
+func (u *UserRepository) toEntity(user domain.User) dao.User {
+	return dao.User{
+		Id:       user.Id,
+		NikeName: user.NikeName,
+		Birthday: user.Birthday.UnixMilli(),
+		About:    user.About,
+	}
+}
+
+func (u *UserRepository) Update(ctx context.Context, user domain.User) error {
+	return u.dao.Update(ctx, u.toEntity(user))
+}
+
+func (u *UserRepository) GetById(ctx context.Context, id int64) (domain.User, error) {
+	user, err := u.dao.GetById(ctx, id)
+	if err != nil {
+		return domain.User{}, err
+	}
+	return u.toDomain(user), nil
+}

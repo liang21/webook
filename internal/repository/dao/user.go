@@ -39,12 +39,25 @@ func (u *UserDao) GetByEmail(ctx context.Context, email string) (User, error) {
 
 }
 
+func (u *UserDao) Update(ctx context.Context, user User) error {
+	return u.db.WithContext(ctx).Model(&user).Where("id = ?", user.Id).Updates(&user).Error
+}
+
+func (u *UserDao) GetById(ctx context.Context, id int64) (User, error) {
+	var user User
+	err := u.db.WithContext(ctx).First(&user, id).Error
+	return user, err
+}
+
 type User struct {
 	Id        int64  `json:"id"`
 	Email     string `json:"email"`
 	Password  string `json:"password"`
 	CreatedAt int64  `json:"created_at"`
 	UpdatedAt int64  `json:"updated_at"`
+	NikeName  string `json:"nike_name"`
+	Birthday  int64  `json:"birthday"`
+	About     string `json:"about"`
 }
 
 func (*User) TableName() string {

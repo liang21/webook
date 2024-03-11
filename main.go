@@ -2,8 +2,6 @@ package main
 
 import (
 	"github.com/gin-contrib/cors"
-	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"github.com/liang21/webook/internal/repository"
 	"github.com/liang21/webook/internal/repository/dao"
@@ -51,9 +49,10 @@ func initWebServer() *gin.Engine {
 		//AllowOrigins:     []string{"http://localhost:3000"},
 		AllowCredentials: true,
 
-		AllowHeaders: []string{"Content-Type"},
+		AllowHeaders: []string{"Content-Type", "Authorization"},
 		//AllowHeaders: []string{"content-type"},
 		//AllowMethods: []string{"POST"},
+		ExposeHeaders: []string{"X-Jwt-Token"},
 		AllowOriginFunc: func(origin string) bool {
 			if strings.HasPrefix(origin, "http://localhost") {
 				//if strings.Contains(origin, "localhost") {
@@ -62,15 +61,20 @@ func initWebServer() *gin.Engine {
 			return strings.Contains(origin, "your_company.com")
 		},
 		MaxAge: 12 * time.Hour,
-	}), func(ctx *gin.Context) {
-		println("这是我的 Middleware")
-	})
+	}))
 
-	login := &middleware.LoginMiddlewareBuilder{}
-	// 存储数据的，也就是你 userId 存哪里
-	// 直接存 cookie
-	store := cookie.NewStore([]byte("secret"))
-	handlerFunc := sessions.Sessions("ssid", store)
-	server.Use(handlerFunc, login.CheckLogin())
+	//login := &middleware.LoginMiddlewareBuilder{}
+	//// 存储数据的，也就是你 userId 存哪里
+	//// 直接存 cookie
+	//store := cookie.NewStore([]byte("secret"))
+	//handlerFunc := sessions.Sessions("ssid", store)
+
+	//server.Use(handlerFunc, login.CheckLogin())
+	useJWT(server)
 	return server
+}
+
+func useJWT(server *gin.Engine) {
+	login := &middleware.LoginJWTMiddlewareBuilder{}
+	server.Use(login.CheckLogin())
 }
