@@ -14,10 +14,10 @@ type UserRepository interface {
 }
 
 type CacheUserRepository struct {
-	dao *dao.UserDao
+	dao dao.UserDao
 }
 
-func NewUserRepository(dao *dao.UserDao) UserRepository {
+func NewUserRepository(dao dao.UserDao) UserRepository {
 	return &CacheUserRepository{dao: dao}
 }
 
