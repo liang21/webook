@@ -7,15 +7,24 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type UserService struct {
+type UserService interface {
+	Login(ctx context.Context, email, password string) (user domain.User, err error)
+	SignUp(ctx context.Context, user domain.User) error
+	Edit(ctx context.Context, user domain.User) error
+	Profile(ctx context.Context, id int64) (domain.User, error)
+}
+
+type userService struct {
 	repo *repository.UserRepository
 }
 
-func NewUserService(repo *repository.UserRepository) *UserService {
-	return &UserService{repo: repo}
+func NewUserService(repo *repository.UserRepository) UserService {
+	return &userService{
+		repo: repo,
+	}
 }
 
-func (u *UserService) SignUp(ctx context.Context, user domain.User) error {
+func (u *userService) SignUp(ctx context.Context, user domain.User) error {
 	password, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
@@ -24,7 +33,7 @@ func (u *UserService) SignUp(ctx context.Context, user domain.User) error {
 	return u.repo.Create(ctx, user)
 }
 
-func (u *UserService) Login(ctx context.Context, email, password string) (user domain.User, err error) {
+func (u *userService) Login(ctx context.Context, email, password string) (user domain.User, err error) {
 	user, err = u.repo.GetByEmail(ctx, email)
 	if err != nil {
 		return domain.User{}, err
@@ -36,11 +45,11 @@ func (u *UserService) Login(ctx context.Context, email, password string) (user d
 	return user, nil
 }
 
-func (u *UserService) Edit(ctx context.Context, user domain.User) error {
+func (u *userService) Edit(ctx context.Context, user domain.User) error {
 	return u.repo.Update(ctx, user)
 }
 
-func (u *UserService) Profile(ctx context.Context, id int64) (domain.User, error) {
+func (u *userService) Profile(ctx context.Context, id int64) (domain.User, error) {
 	user, err := u.repo.GetById(ctx, id)
 	if err != nil {
 		return domain.User{}, err

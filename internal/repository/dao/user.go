@@ -10,15 +10,22 @@ import (
 
 var ErrDuplicateEmail = errors.New("邮箱冲突")
 
-type UserDao struct {
+type UserDao interface {
+	Insert(ctx context.Context, user User) error
+	GetByEmail(ctx context.Context, email string) (User, error)
+	Update(ctx context.Context, user User) error
+	GetById(ctx context.Context, id int64) (User, error)
+}
+
+type GORMUserDao struct {
 	db *gorm.DB
 }
 
-func NewUserDao(db *gorm.DB) *UserDao {
-	return &UserDao{db: db}
+func NewUserDao(db *gorm.DB) UserDao {
+	return &GORMUserDao{db: db}
 }
 
-func (u *UserDao) Insert(ctx context.Context, user User) error {
+func (u *GORMUserDao) Insert(ctx context.Context, user User) error {
 	now := time.Now().UnixMilli()
 	user.CreatedAt = now
 	user.UpdatedAt = now
@@ -32,18 +39,18 @@ func (u *UserDao) Insert(ctx context.Context, user User) error {
 	return err
 }
 
-func (u *UserDao) GetByEmail(ctx context.Context, email string) (User, error) {
+func (u *GORMUserDao) GetByEmail(ctx context.Context, email string) (User, error) {
 	var user User
 	err := u.db.WithContext(ctx).Where("email = ?", email).First(&user).Error
 	return user, err
 
 }
 
-func (u *UserDao) Update(ctx context.Context, user User) error {
+func (u *GORMUserDao) Update(ctx context.Context, user User) error {
 	return u.db.WithContext(ctx).Model(&user).Where("id = ?", user.Id).Updates(&user).Error
 }
 
-func (u *UserDao) GetById(ctx context.Context, id int64) (User, error) {
+func (u *GORMUserDao) GetById(ctx context.Context, id int64) (User, error) {
 	var user User
 	err := u.db.WithContext(ctx).First(&user, id).Error
 	return user, err

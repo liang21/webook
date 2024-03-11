@@ -40,6 +40,9 @@ func (u *UserHandler) RegisterRoutes(server *gin.Engine) {
 
 }
 
+type name interface {
+}
+
 func (u *UserHandler) SignUp(c *gin.Context) {
 	type SignUpReq struct {
 		Email           string `json:"email"`
@@ -136,7 +139,7 @@ func (u *UserHandler) LoginJWT(c *gin.Context) {
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
 		},
-		userAgent: c.GetHeader("User-Agent"),
+		UserAgent: c.GetHeader("User-Agent"),
 	})
 	tokenStr, err := token.SignedString(JWTKey)
 	if err != nil {
@@ -216,5 +219,6 @@ var JWTKey = []byte("k6CswdUm77WKcbM68UQUuxVsHSpTCwgK")
 type UserClaims struct {
 	Id int64
 	jwt.RegisteredClaims
-	userAgent string
+
+	UserAgent string
 }
